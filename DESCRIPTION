@@ -1,0 +1,19 @@
+Package: LIMON
+Type: Package
+Title: Longitudinal Individual Microbial Omics Networks
+Version: 0.1.14
+Author: c(person("Suzanne", "Alvernaz", email = "salver5@uic.edu", role = c("aut","cre")), person("Beatriz" "Peñalver Berñabe", role = "aut"))
+Maintainer: The package maintainer <bealabuic@uic.edu>
+Description: LIMON allows users to investigate longitudinal changes in microbial omics networks. This package allows for covariate correction, individual network inferences, and networks per time. This novel statistical approach addresses six key challenges of modeling temporal and microbial data; (1) overdispersion, (2) zero-inflated count data, (3) compositionality, (4) sample covariates over time, (5) repeated measuring errors, and  (6) uniquely accounting for individual network characteristics by a  selected feature of interest. In this model, temporal OTU count data is fitted to a zero-inflated  negative binomial linear mixed model, undergoes centered-log ratio transformation and network inference  with SPIEC-EASI, and finally estimation of individual network properties longitudinally using Linear Interpolation to Obtain Network Estimates for Single Samples (LIONNESS).  This approach allows users to remove the random effects of repeated samples and sample covariates, return networks per timepoint, identify interaction changes between each timepoint, and finally return individual networks and network characteristics per sample/timepoint. In doing so, LIMON provides a platform to identify the relationship between network centralities and sample features of interest overtime.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: 
+   tidyverse,
+   NBZIMM,
+   SpiecEasi,
+   igraph,
+   Matrix
+RoxygenNote: 7.3.1
+Depends: 
+    R (>= 2.10)
