@@ -58,7 +58,7 @@ You can install LIMON using devtools:
 install.packages("devtools")
 library(devtools)
 
-install_github(“salverna/LIMON”)
+install_github("salverna/LIMON")
 ```
 
 ## Tutorial
