@@ -299,6 +299,42 @@ L_obj4 <- LIMON_Edges_Networks(L_obj3, threshold = 0.02, vertex.size = 3,
 ```
 
 <img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" /><img src="man/figures/README-unnamed-chunk-12-2.png" width="100%" /><img src="man/figures/README-unnamed-chunk-12-3.png" width="100%" /><img src="man/figures/README-unnamed-chunk-12-4.png" width="100%" />
+Other possible `LIMON_NetInf_Time()` options include:
+
+```r
+## SpiecEasi – neighborhood selection (β matrix)
+L_obj3 <- LIMON_NetInf_Time(Obj = L_obj2,
+                            model = "spiec.easi",
+                            method = "mb",
+                            matrix_target = "beta")
+
+## gCoda – precision matrix
+L_obj3 <- LIMON_NetInf_Time(Obj = L_obj2,
+                            model = "gcoda",
+                            matrix_target = "precision",
+                            lambda.min.ratio = 0.1,
+                            nlambda = 10)
+
+## MAGMA – precision matrix
+L_obj3 <- LIMON_NetInf_Time(Obj = L_obj2,
+                            model = "magma",
+                            matrix_target = "precision",
+                            lambda.min.ratio = 0.1)
+
+## SparCC – correlation matrix
+L_obj3 <- LIMON_NetInf_Time(Obj = L_obj2,
+                            model = "sparcc",
+                            matrix_target = "correlation")
+
+## OneNet – ensemble adjacency matrix (no IndNet support)
+L_obj3 <- LIMON_NetInf_Time(Obj = L_obj2,
+                            model = "onenet",
+                            matrix_target = "adjacency",
+                            onenet_threshold = 0.6,
+                            onenet_rep.num = 10,
+                            onenet_mean.stability = 0.8)
+```
+ℹ️ Change the parameter values as required — these are example code blocks.
 
 #### Step 4 - Individualized Networks
 
@@ -317,7 +353,59 @@ L_obj6 <- LIMON_IndNet(Obj = L_obj4, method = "glasso",
                                          pulsar.params=pseed,
                                          nlambda = 200)
 ```
- 
+Other options for individual network inference include:
+
+After estimating networks per time point, you can compute per-sample networks.  
+For **SpiecEasi backends**, you can first extract the optimal λ values from NetInf and reuse them for stable individual fits.  
+
+
+```r
+## SpiecEasi (glasso) – with λ* extracted from NetInf
+lambda.per.time <- get_spiec_lambdas_from_netinf(L_obj3)
+
+L_obj6 <- LIMON_IndNet(
+  Obj = L_obj3,
+  method = "glasso",
+  lambda.per.time = lambda.per.time,
+  nlambda = 1,
+  pulsar.select = TRUE,
+  pulsar.params = list(rep.num = 1, thresh = 0.1),
+  icov.select = FALSE
+)
+
+## SpiecEasi (mb) – also supports λ* reuse
+lambda.per.time <- get_spiec_lambdas_from_netinf(L_obj3)
+
+L_obj6 <- LIMON_IndNet(
+  Obj = L_obj4,
+  method = "mb",
+  lambda.per.time = lambda.per.time,
+  nlambda = 1
+)
+
+## gCoda – no λ* extraction, set λ.min.ratio directly
+L_obj6 <- LIMON_IndNet(
+  Obj = L_obj4,
+  method = "gcoda",
+  lambda.min.ratio = 0.1,
+  nlambda = 10
+)
+
+## MAGMA – no λ* extraction
+L_obj6 <- LIMON_IndNet(
+  Obj = L_obj4,
+  method = "magma",
+  lambda.min.ratio = 0.1
+)
+
+## SparCC – correlation networks
+L_obj6 <- LIMON_IndNet(
+  Obj = L_obj4,
+  method = "sparcc"
+)
+```
+ℹ️ Change parameter values as required — these are example code blocks.
+
 Optionally, save the object using saveRDS and read it back in later
 
 ``` r
