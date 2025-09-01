@@ -2,45 +2,107 @@
 % Please edit documentation in R/LIMON_IndNet.R
 \name{LIMON_IndNet}
 \alias{LIMON_IndNet}
-\title{Individual Network Inferences}
+\title{LIMON Individual Networks (LOO) — robust}
 \usage{
 LIMON_IndNet(
   Obj,
-  method,
-  sel.criterion,
-  lambda.min.ratio,
-  nlambda,
+  method = "glasso",
+  sel.criterion = "stars",
+  lambda.min.ratio = 0.1,
+  nlambda = 10,
   pulsar.select = TRUE,
   pulsar.params = list(),
   icov.select = pulsar.select,
   icov.select.params = pulsar.params,
-  lambda.log = TRUE
+  lambda.log = TRUE,
+  lambda.per.time = NULL
 )
 }
 \arguments{
-\item{Obj}{LIMON Object from LIMON_NetInf_Time()}
+\item{Obj}{LIMON object with \code{$Corrected_Counts_Time}. If NetInf was run with SpiecEasi,
+\code{Obj$SpiecEasi_Time[[i]]} can serve as the full-network baseline at time \code{i}.}
 
-\item{method}{Default "glasso". "mb" other option from SpiecEasi}
+\item{method}{Character. One of \code{"glasso"} (default), \code{"mb"}, \code{"sparcc"},
+\code{"magma"}, or \code{"gcoda"}.}
 
-\item{sel.criterion}{Method for model selection. Either 'stars' [default] or 'bstars' (Bounded StARS)}
+\item{sel.criterion}{Character. SpiecEasi selection criterion (\code{"stars"} default, or \code{"bstars"})
+used only when \code{lambda.per.time} is \code{NULL}.}
 
-\item{lambda.min.ratio}{Scaling factor that will set the minimum lambda (sparsity) parameter}
+\item{lambda.min.ratio}{Numeric. Used by SpiecEasi/gCoda and as \eqn{\lambda} for MAGMA when
+\code{magma.select = FALSE} (default \code{0.1}). Ignored when \code{lambda.per.time} is given.}
 
-\item{nlambda}{sparsity parameter (see SpiecEasi for more details)}
+\item{nlambda}{Integer. Number of \eqn{\lambda} values for SpiecEasi (default \code{10});
+set to \code{1} when \code{lambda.per.time} is given.}
 
-\item{pulsar.select}{Default TRUE}
+\item{pulsar.select}{Logical. Enable Pulsar/StARS selection for SpiecEasi (default \code{TRUE}).}
 
-\item{pulsar.params}{Default empty list()}
+\item{pulsar.params}{List. Passed to SpiecEasi \code{pulsar.params}. When \code{lambda.per.time}
+is given and this list is empty, defaults internally to \code{list(rep.num = 1, thresh = 0.1)} for speed.}
 
-\item{icov.select}{Default "pulsar.select"}
+\item{icov.select}{Logical. SpiecEasi inverse-covariance selection flag (default \code{pulsar.select}).}
 
-\item{icov.select.params}{Default "pulsar.params"}
+\item{icov.select.params}{List. Passed to SpiecEasi \code{icov.select.params} (default \code{pulsar.params}).}
 
-\item{lambda.log}{Default TRUE}
+\item{lambda.log}{Logical. Log-scaled \eqn{\lambda} path (default \code{TRUE}).}
+
+\item{lambda.per.time}{Optional \emph{list} of fixed per-timepoint \eqn{\lambda^\*} (length equals
+number of timepoints), typically extracted via \code{get_spiec_lambdas_from_netinf()}.}
 }
 \value{
-LIMON object with individual networks per sample stored in Individual_Networks by sample name
+The input \code{Obj} with an additional slot:
+\itemize{
+  \item \code{$Individual_Networks}: a named list of per-sample matrices
+        (entries named like \code{"<sample>_Time<i>"}), each matching the backend’s matrix type
+        for the chosen \code{method}.
+}
 }
 \description{
-# Function to perform network inferences following method in lionessR - https://github.com/mararie/lionessR. Note: Consider using the same methods and parameters as in LIMON_NetInf_Time(). See the \pkg{SpiecEasi} documentation for more details.
+Computes per-sample \emph{leave-one-out} (LIONESS-style) networks at each
+timepoint. Supports backends \code{"spiec.easi"} (methods \code{"glasso"} or \code{"mb"}),
+\code{"gcoda"}, \code{"magma"}, and \code{"sparcc"}. When \code{lambda.per.time} is
+supplied (list of per-timepoint \eqn{\lambda^\*} from a prior NetInf run), SpiecEasi
+refits each LOO with that fixed \eqn{\lambda^\*} using \code{pulsar.select = TRUE},
+\code{nlambda = 1}, and extracts the optimal matrix via \code{getOpt*()}.
+}
+\details{
+\strong{Matrix types used internally:}
+\itemize{
+  \item \code{spiec.easi + glasso}: \emph{precision} via \code{SpiecEasi::getOptiCov()} (recommended).
+  \item \code{spiec.easi + mb}: \emph{beta} via \code{symBeta(getOptBeta())}.
+  \item \code{gcoda}: \emph{precision} (optimal inverse covariance).
+  \item \code{magma}: \emph{precision} (\code{opt.icov}).
+  \item \code{sparcc}: \emph{correlation}.
+}
+LIONESS reconstruction per sample \eqn{s} at time \eqn{t} is computed as
+\deqn{G^{(s)}_t = n_t \, (G^{(\mathrm{all})}_t - G^{(-s)}_t) + G^{(-s)}_t,}
+where \eqn{n_t} is the number of samples at time \eqn{t}, \eqn{G^{(\mathrm{all})}_t} is the
+full fit, and \eqn{G^{(-s)}_t} is the fit with sample \eqn{s} removed.
+}
+\examples{
+\dontrun{
+## After running NetInf with SpiecEasi glasso:
+L_obj3 <- LIMON_NetInf_Time(Obj = L_obj2, model = "spiec.easi", method = "glasso")
+lambda.per.time <- get_spiec_lambdas_from_netinf(L_obj3)
+
+## Individual networks with fixed λ* (fast, consistent):
+L_obj4 <- LIMON_IndNet(
+  Obj = L_obj3,
+  method = "glasso",
+  lambda.per.time = lambda.per.time,
+  nlambda = 1,
+  pulsar.select = TRUE,
+  pulsar.params = list(rep.num = 1, thresh = 0.1),
+  icov.select = FALSE
+)
+
+## Alternative backends (no λ* concept):
+L_obj4 <- LIMON_IndNet(Obj = L_obj3, method = "gcoda")
+L_obj4 <- LIMON_IndNet(Obj = L_obj3, method = "magma", lambda.min.ratio = 0.1)
+L_obj4 <- LIMON_IndNet(Obj = L_obj3, method = "sparcc")
+}
+
+}
+\seealso{
+\code{\link{LIMON_NetInf_Time}} for timepoint-level fits and
+  \code{\link{get_spiec_lambdas_from_netinf}} to extract per-timepoint \eqn{\lambda^\*}.
 }
