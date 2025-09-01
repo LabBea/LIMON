@@ -364,7 +364,7 @@ For **SpiecEasi backends**, you can first extract the optimal λ values from Net
 lambda.per.time <- get_spiec_lambdas_from_netinf(L_obj3)
 
 L_obj6 <- LIMON_IndNet(
-  Obj = L_obj3,
+  Obj = L_obj4,
   method = "glasso",
   lambda.per.time = lambda.per.time,
   nlambda = 1,
